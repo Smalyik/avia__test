@@ -1,12 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { setName, fetchName } from '../../store/name/actions';
-import styles from './App.styl';
+import styles from './VKO.styl';
 
-const App = ({ name, setName, fetchName }) => {
+const VKO = ({ name, setName, fetchName }) => {
 	return (
-	<div className={styles.App}>
-		App
+	<div className={styles.VKO}>
+		VKO
 	</div>);
 };
 
@@ -16,4 +16,4 @@ const mapStateToProps = (state, ownProps) => {
 	};
 };
 
-export default connect(mapStateToProps, { setName, fetchName })(App);
+export default connect(mapStateToProps, { setName, fetchName })(VKO);
