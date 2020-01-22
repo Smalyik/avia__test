@@ -3,10 +3,10 @@ import ReactDOM from 'react-dom';
 import Root from './Root';
 import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import styles from './styles/common.styl'
-const App = lazy(() => import('./components/App/App'));
-const VKO = lazy(() => import('./components/VKO/VKO'));
-const DME = lazy(() => import('./components/DME/DME'));
-const SVO = lazy(() => import('./components/SVO/SVO'));
+const App = lazy(() => import('./pages/App/App'));
+const VKO = lazy(() => import('./pages/VKO/VKO'));
+const DME = lazy(() => import('./pages/DME/DME'));
+const SVO = lazy(() => import('./pages/SVO/SVO'));
 
 ReactDOM.render(
 	<Root>
