@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import FlightCard from '../../components/FlightCard/FlightCard';
 import Controls from '../../components/Controls/Controls';
+import Select from "react-select";
 
 import styles from './SVO.styl';
 
@@ -11,13 +12,6 @@ const SVO = props => {
 	const [flights, setFlights] = useState(null);
 	const [airports, setAirports] = useState(null);
 	const [countries, setCountries] = useState(null);
-
-	const sortByCountry = event => {
-		console.log(event.target);
-		const sortedFlights = flights.map((flight, index) => {
-			// console.log(event);
-		});
-	};
 
 	const getDepartureFlights = async () => {
 		axios('http://localhost:3001/flights', {
@@ -32,13 +26,39 @@ const SVO = props => {
 			.then(data => {
 				console.log(data);
 				const countries = [];
+				const options = []
 				data.appendix.airports.map(airport => {
-					return countries.includes(airport.countryName) ? null : countries.push(airport.countryName);
+					if (!countries.includes(airport.countryName)) {
+						countries.push(airport.countryName)
+						options.push({
+							value: airport.countryCode, label: airport.countryName
+						})
+					}
 				});
-				setCountries(countries);
+				setCountries(options);
 				setFlights(data.scheduledFlights);
 				setAirports(data.appendix.airports);
 			});
+	};
+
+	const sortByCountry = event => {
+		const selectedCountries = []
+		const otherCountries = []
+		console.log(event)
+		flights.map((flight, index) => {
+			let flightCountry
+			airports.map(airport => {
+				return airport.fs === flight.arrivalAirportFsCode ? (flightCountry = airport.countryName) : null;
+			});
+			if (flightCountry === event.label) {
+				return selectedCountries.push(flight)
+			} else {
+				return otherCountries.push(flight)
+			}
+		});
+		const sortedCountries = [...selectedCountries, ...otherCountries]
+		// console.log(selectedCountries)
+		setFlights(sortedCountries)
 	};
 
 	useEffect(() => {
@@ -49,17 +69,7 @@ const SVO = props => {
 		<div className={styles.main}>
 			<div className="row">
 				<span>Сортировка по стране: </span>
-				<select onChange={sortByCountry}>
-					{countries !== null
-						? countries.map(country => {
-								return (
-									<option value={country} key={country}>
-										{country}{' '}
-									</option>
-								);
-						  })
-						: null}
-				</select>
+				<Select onChange={sortByCountry} label="Single select" options={countries} />
 				{flights !== null && airports !== null
 					? flights.map(flight => {
 							let country;
