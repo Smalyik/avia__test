@@ -1,6 +1,6 @@
 import React from 'react';
 
-import styles from './Controls.styl';
+// import styles from './Controls.styl';
 
 const Controls = props => {
 	return <div>controls</div>;
