@@ -6,17 +6,15 @@ import * as moment from 'moment';
 import 'moment/locale/ru';
 import FlightCard from '../../components/FlightCard/FlightCard';
 import Controls from '../../components/Controls/Controls';
-import Select from "react-select";
+import Select from 'react-select';
 
 import styles from './SVO.styl';
 
-moment.locale('ru')
+moment.locale('ru');
 
 const SVO = props => {
 	const [departure, setDeparture] = useState(true);
-	const [flights, setFlights] = useState(null);
-	const [airports, setAirports] = useState(null);
-	const [countries, setCountries] = useState(null);
+	const [flightsInfo, setFlightsInfo] = useState();
 
 	const getDepartureFlights = async () => {
 		axios('http://localhost:3001/flights', {
@@ -31,49 +29,65 @@ const SVO = props => {
 			.then(data => {
 				console.log(data);
 				const countries = [];
-				const options = []
+				const options = [];
 				data.appendix.airports.map(airport => {
 					if (!countries.includes(airport.countryName)) {
-						countries.push(airport.countryName)
+						countries.push(airport.countryName);
 						options.push({
-							value: airport.countryCode, label: airport.countryName
-						})
+							value: airport.countryCode,
+							label: airport.countryName,
+						});
 					}
 				});
-				setCountries(options);
-				setFlights(data.scheduledFlights);
-				setAirports(data.appendix.airports);
+				setFlightsInfo({
+					flights: data.scheduledFlights,
+					countries: options,
+					airports: data.appendix.airports,
+				});
 			});
 	};
 
 	const sortByFlightNumber = sortType => {
-		const copyFlights = [...flights]
+		const copyFlights = [...flightsInfo.flights];
+		const copyInfo = Object.create(flightsInfo);
 		if (sortType === 'increase') {
-			const sortedFlightsList = copyFlights.sort((prev, next) => prev.flightNumber - next.flightNumber)
-			setFlights(sortedFlightsList)
+			const sortedFlightsList = copyFlights.sort((prev, next) => prev.flightNumber - next.flightNumber);
+			setFlightsInfo(
+				Object.assign(copyInfo, {
+					flights: sortedFlightsList,
+				})
+			);
 		} else if (sortType === 'decrease') {
-			const sortedFlightsList = copyFlights.sort((prev, next) => next.flightNumber - prev.flightNumber)
-			setFlights(sortedFlightsList)
+			const sortedFlightsList = copyFlights.sort((prev, next) => next.flightNumber - prev.flightNumber);
+			setFlightsInfo(
+				Object.assign(copyInfo, {
+					flights: sortedFlightsList,
+				})
+			);
 		}
-	}
+	};
 
 	const sortByCountry = event => {
-		const selectedCountries = []
-		const otherCountries = []
-		console.log(event)
-		flights.map((flight, index) => {
-			let flightCountry
-			airports.map(airport => {
+		const selectedCountries = [];
+		const otherCountries = [];
+		const copyInfo = Object.create(flightsInfo);
+		flightsInfo.flights.map(flight => {
+			let flightCountry;
+			flightsInfo.airports.map(airport => {
 				return airport.fs === flight.arrivalAirportFsCode ? (flightCountry = airport.countryName) : null;
 			});
 			if (flightCountry === event.label) {
-				return selectedCountries.push(flight)
+				return selectedCountries.push(flight);
 			} else {
-				return otherCountries.push(flight)
+				return otherCountries.push(flight);
 			}
 		});
-		const sortedCountries = [...selectedCountries, ...otherCountries]
-		setFlights(...sortedCountries)
+		const sortedCountries = [...selectedCountries, ...otherCountries];
+		setFlightsInfo(
+			Object.assign(copyInfo, {
+				flights: sortedCountries,
+			})
+		);
 	};
 
 	useEffect(() => {
@@ -83,23 +97,23 @@ const SVO = props => {
 	return (
 		<div className={styles.main}>
 			<div className="row">
-				<span>Сортировка по стране: </span>
-				<Select onChange={sortByCountry} label="Single select" options={countries} />
-				<button onClick={() => sortByFlightNumber('increase')}>Сортировка по возрастанию номеру полета</button>
-				<button onClick={() => sortByFlightNumber('decrease')}>Сортировка по убыванию номеру полета</button>
-				{flights !== null && airports !== null
-					? flights.map(flight => {
-							let country
-							airports.map(airport => {
-								return airport.fs === flight.arrivalAirportFsCode ? (country = airport.countryName) : null;
+				{flightsInfo ? (
+					<>
+						<span>Сортировка по стране: </span>
+						<Select onChange={sortByCountry} label="Single select" options={flightsInfo.countries} />
+						<button onClick={() => sortByFlightNumber('increase')}>Сортировка по возрастанию номеру полета</button>
+						<button onClick={() => sortByFlightNumber('decrease')}>Сортировка по убыванию номеру полета</button>
+						{flightsInfo.flights.map(flight => {
+							const country = flightsInfo.airports.map(airport => {
+								return airport.fs === flight.arrivalAirportFsCode ? airport.countryName : null;
 							});
 
 							if (departure) {
 								return (
 									<FlightCard
 										flightNumber={flight.flightNumber}
-										time={moment(flight.departureTime).format("h:mm")}
-										date={moment(flight.departureTime).format("MMM Do")}
+										time={moment(flight.departureTime).format('h:mm')}
+										date={moment(flight.departureTime).format('MMM Do')}
 										country={country}
 										terminal={flight.departureTerminal}
 										key={flight.flightNumber}
@@ -108,8 +122,11 @@ const SVO = props => {
 							} else {
 								return;
 							}
-					  })
-					: null}
+						})}
+					</>
+				) : (
+					<div>Loading...</div>
+				)}
 			</div>
 		</div>
 	);
