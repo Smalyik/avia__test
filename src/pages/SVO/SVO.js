@@ -1,11 +1,16 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+// import moment from 'moment'
+import * as moment from 'moment';
+import 'moment/locale/ru';
 import FlightCard from '../../components/FlightCard/FlightCard';
 import Controls from '../../components/Controls/Controls';
 import Select from "react-select";
 
 import styles from './SVO.styl';
+
+moment.locale('ru')
 
 const SVO = props => {
 	const [departure, setDeparture] = useState(true);
@@ -41,6 +46,17 @@ const SVO = props => {
 			});
 	};
 
+	const sortByFlightNumber = sortType => {
+		const copyFlights = [...flights]
+		if (sortType === 'increase') {
+			const sortedFlightsList = copyFlights.sort((prev, next) => prev.flightNumber - next.flightNumber)
+			setFlights(sortedFlightsList)
+		} else if (sortType === 'decrease') {
+			const sortedFlightsList = copyFlights.sort((prev, next) => next.flightNumber - prev.flightNumber)
+			setFlights(sortedFlightsList)
+		}
+	}
+
 	const sortByCountry = event => {
 		const selectedCountries = []
 		const otherCountries = []
@@ -57,8 +73,7 @@ const SVO = props => {
 			}
 		});
 		const sortedCountries = [...selectedCountries, ...otherCountries]
-		// console.log(selectedCountries)
-		setFlights(sortedCountries)
+		setFlights(...sortedCountries)
 	};
 
 	useEffect(() => {
@@ -70,10 +85,11 @@ const SVO = props => {
 			<div className="row">
 				<span>Сортировка по стране: </span>
 				<Select onChange={sortByCountry} label="Single select" options={countries} />
+				<button onClick={() => sortByFlightNumber('increase')}>Сортировка по возрастанию номеру полета</button>
+				<button onClick={() => sortByFlightNumber('decrease')}>Сортировка по убыванию номеру полета</button>
 				{flights !== null && airports !== null
 					? flights.map(flight => {
-							let country;
-
+							let country
 							airports.map(airport => {
 								return airport.fs === flight.arrivalAirportFsCode ? (country = airport.countryName) : null;
 							});
@@ -82,7 +98,8 @@ const SVO = props => {
 								return (
 									<FlightCard
 										flightNumber={flight.flightNumber}
-										date={flight.departureTime}
+										time={moment(flight.departureTime).format("h:mm")}
+										date={moment(flight.departureTime).format("MMM Do")}
 										country={country}
 										terminal={flight.departureTerminal}
 										key={flight.flightNumber}
