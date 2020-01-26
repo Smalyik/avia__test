@@ -15,7 +15,12 @@ const FlightCard = props => {
 						Время {props.flightType ? 'вылета' : 'прилета'}: {props.time}
 					</div>
 					<div className={styles.text}>
-						Куда: {props.country}
+						<div>
+							Откуда {props.countryFrom}
+						</div>
+						<div>
+							Куда: {props.countryTo}
+						</div>
 					</div>
 					<div className={styles.text}>
 						Терминал {props.flightType ? 'вылета' : 'прилета'}: {props.terminal}

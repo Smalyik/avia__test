@@ -15,11 +15,13 @@ moment.locale('ru');
 const SVO = props => {
 	const [departure, setDeparture] = useState(true);
 	const [flightsInfo, setFlightsInfo] = useState();
+	const [prevFlightsInfo, setPrevFlightsInfo] = useState()
 	const [isLetterSortToUp, setIsLetterSortToUp] = useState(true);
-	const [isTimeSortToUp, setIsTimeSortToUp] = useState(true)
+	const [isTimeSortToUp, setIsTimeSortToUp] = useState(true);
+	const [searchInput, setSearchInput] = useState('');
 
 	const getDepartureFlights = async () => {
-		const flightType = departure ? 'departing' : 'arriving'
+		const flightType = departure ? 'departing' : 'arriving';
 		axios('http://localhost:3001/flights', {
 			params: {
 				flightType: flightType,
@@ -55,46 +57,46 @@ const SVO = props => {
 	const sortByTime = () => {
 		const copyFlights = [...flightsInfo.flights];
 		const copyInfo = Object.create(flightsInfo);
-		let sortedFlightsList
+		let sortedFlightsList;
 
 		if (isTimeSortToUp) {
 			sortedFlightsList = flightsInfo.flights.sort((prev, next) => {
 				const timePrev = prev.departureTime;
 				const timeNext = next.departureTime;
-				const hoursPrev = (moment(timePrev).format('h') * 60);
-				const minutesPrev = Number(moment(timePrev).format('mm'))
-				const prevTimeInMinutes = hoursPrev + minutesPrev
-				
-				const hoursNext = (moment(timeNext).format('h') * 60);
-				const minutesNext = Number(moment(timeNext).format('mm'))
-				const nextTimeInMinutes = hoursNext + minutesNext
-	
+				const hoursPrev = moment(timePrev).format('h') * 60;
+				const minutesPrev = Number(moment(timePrev).format('mm'));
+				const prevTimeInMinutes = hoursPrev + minutesPrev;
+
+				const hoursNext = moment(timeNext).format('h') * 60;
+				const minutesNext = Number(moment(timeNext).format('mm'));
+				const nextTimeInMinutes = hoursNext + minutesNext;
+
 				return prevTimeInMinutes - nextTimeInMinutes;
 			});
-			setIsTimeSortToUp(false)
+			setIsTimeSortToUp(false);
 		} else {
 			sortedFlightsList = flightsInfo.flights.sort((prev, next) => {
 				const timePrev = prev.departureTime;
 				const timeNext = next.departureTime;
-				const hoursPrev = (moment(timePrev).format('h') * 60);
-				const minutesPrev = Number(moment(timePrev).format('mm'))
-				const prevTimeInMinutes = hoursPrev + minutesPrev
-				
-				const hoursNext = (moment(timeNext).format('h') * 60);
-				const minutesNext = Number(moment(timeNext).format('mm'))
-				const nextTimeInMinutes = hoursNext + minutesNext
-	
+				const hoursPrev = moment(timePrev).format('h') * 60;
+				const minutesPrev = Number(moment(timePrev).format('mm'));
+				const prevTimeInMinutes = hoursPrev + minutesPrev;
+
+				const hoursNext = moment(timeNext).format('h') * 60;
+				const minutesNext = Number(moment(timeNext).format('mm'));
+				const nextTimeInMinutes = hoursNext + minutesNext;
+
 				return nextTimeInMinutes - prevTimeInMinutes;
 			});
-			setIsTimeSortToUp(true)
+			setIsTimeSortToUp(true);
 		}
-		
+
 		setFlightsInfo(
 			Object.assign(copyInfo, {
 				flights: sortedFlightsList,
 			})
 		);
-	}
+	};
 
 	const sortByGate = sortType => {
 		const copyFlights = [...flightsInfo.flights];
@@ -102,25 +104,48 @@ const SVO = props => {
 		let sortedFlightsList;
 		switch (sortType) {
 			case 'letter':
-				if (isLetterSortToUp) {
-					sortedFlightsList = copyFlights.sort((prev, next) => {
-						let namePrev = prev.departureTerminal.toLowerCase(),
-							nameNext = next.departureTerminal.toLowerCase();
-						if (namePrev < nameNext) return -1;
-						if (namePrev > nameNext) return 1;
-						return 0;
-					});
-					setIsLetterSortToUp(false);
+				if (departure) {
+					if (isLetterSortToUp) {
+						sortedFlightsList = copyFlights.sort((prev, next) => {
+							let namePrev = prev.departureTerminal.toLowerCase(),
+								nameNext = next.departureTerminal.toLowerCase();
+							if (namePrev < nameNext) return -1;
+							if (namePrev > nameNext) return 1;
+							return 0;
+						});
+						setIsLetterSortToUp(false);
+					} else {
+						sortedFlightsList = copyFlights.sort((prev, next) => {
+							let namePrev = prev.departureTerminal.toLowerCase(),
+								nameNext = next.departureTerminal.toLowerCase();
+							if (namePrev < nameNext) return 1;
+							if (namePrev > nameNext) return -1;
+							return 0;
+						});
+						setIsLetterSortToUp(true);
+					}
 				} else {
-					sortedFlightsList = copyFlights.sort((prev, next) => {
-						let namePrev = prev.departureTerminal.toLowerCase(),
-							nameNext = next.departureTerminal.toLowerCase();
-						if (namePrev < nameNext) return 1;
-						if (namePrev > nameNext) return -1;
-						return 0;
-					});
-					setIsLetterSortToUp(true);
+					if (isLetterSortToUp) {
+						sortedFlightsList = copyFlights.sort((prev, next) => {
+							let namePrev = prev.arrivalTerminal.toLowerCase(),
+								nameNext = next.arrivalTerminal.toLowerCase();
+							if (namePrev < nameNext) return -1;
+							if (namePrev > nameNext) return 1;
+							return 0;
+						});
+						setIsLetterSortToUp(false);
+					} else {
+						sortedFlightsList = copyFlights.sort((prev, next) => {
+							let namePrev = prev.arrivalTerminal.toLowerCase(),
+								nameNext = next.arrivalTerminal.toLowerCase();
+							if (namePrev < nameNext) return 1;
+							if (namePrev > nameNext) return -1;
+							return 0;
+						});
+						setIsLetterSortToUp(true);
+					}
 				}
+
 				setFlightsInfo(
 					Object.assign(copyInfo, {
 						flights: sortedFlightsList,
@@ -171,7 +196,11 @@ const SVO = props => {
 		flightsInfo.flights.map(flight => {
 			let flightCountry;
 			flightsInfo.airports.map(airport => {
-				return airport.fs === flight.arrivalAirportFsCode ? (flightCountry = airport.countryName) : null;
+				if (departure) {
+					return airport.fs === flight.arrivalAirportFsCode ? (flightCountry = airport.countryName) : null;
+				} else {
+					return airport.fs === flight.departureAirportFsCode ? (flightCountry = airport.countryName) : null;
+				}
 			});
 			if (flightCountry === option.label) {
 				return selectedCountries.push(flight);
@@ -190,25 +219,54 @@ const SVO = props => {
 	const changeFlightType = flightType => {
 		switch (flightType) {
 			case 'departing':
-				setFlightsInfo(null)
-				setDeparture(true)
+				setFlightsInfo(null);
+				setDeparture(true);
 				break;
 			case 'arriving':
-				setFlightsInfo(null)
-				setDeparture(false)
+				setFlightsInfo(null);
+				setDeparture(false);
 				break;
 			default:
 				break;
 		}
-	}
+	};
+
+	const searchFlightByNumber = event => {
+		const prevValue = searchInput
+		const nextValue = event.target.value;
+
+		const isRemoveOperation = nextValue < prevValue;
+
+		const onlyNumbersRegexp = new RegExp(/^\d+$/);
+
+		if (nextValue === '') {
+			setSearchInput('');
+		} else if (event.target.value.match(onlyNumbersRegexp)) {
+			setSearchInput(nextValue);
+		}
+
+		if (isRemoveOperation) {
+			return setFlightsInfo(prevFlightsInfo)
+		}
+
+		const copyFlights = [...flightsInfo.flights];
+		const copyInfo = Object.create(flightsInfo);
+		const sortedFlightsList = copyFlights.filter(flight => {
+			return flight.flightNumber.includes(nextValue);
+		});
+		
+		setPrevFlightsInfo(flightsInfo)
+
+		setFlightsInfo(
+			Object.assign(copyInfo, {
+				flights: sortedFlightsList,
+			})
+		);
+	};
 
 	useEffect(() => {
 		getDepartureFlights();
-	}, []);
-
-	useEffect(() => {
-		getDepartureFlights();
-	}, [departure])
+	}, [departure]);
 
 	return (
 		<div className={styles.main}>
@@ -219,6 +277,11 @@ const SVO = props => {
 				</div>
 				{flightsInfo ? (
 					<>
+						<div>
+							<label>
+								<input onChange={searchFlightByNumber} type="tel" value={searchInput} />
+							</label>
+						</div>
 						<span>Сортировка по стране: </span>
 						<Select onChange={sortByCountry} label="Single select" options={flightsInfo.countries} />
 						<>
@@ -233,10 +296,12 @@ const SVO = props => {
 						</div>
 						<button onClick={sortByTime}>Сортировка по времени {departure ? 'вылета' : 'прилета'}</button>
 						{flightsInfo.flights.map(flight => {
-							const country = flightsInfo.airports.map(airport => {
+							const countryTo = flightsInfo.airports.map(airport => {
 								return airport.fs === flight.arrivalAirportFsCode ? airport.countryName : null;
 							});
-
+							const countryFrom = flightsInfo.airports.map(airport => {
+								return airport.fs === flight.departureAirportFsCode ? airport.countryName : null;
+							});
 							if (departure) {
 								return (
 									<FlightCard
@@ -244,7 +309,8 @@ const SVO = props => {
 										flightNumber={flight.flightNumber}
 										time={moment(flight.departureTime).format('h:mm')}
 										date={moment(flight.departureTime).format('MMM Do')}
-										country={country}
+										countryFrom={countryFrom}
+										countryTo={countryTo}
 										terminal={flight.departureTerminal ? flight.departureTerminal : '1'}
 										key={flight.flightNumber}
 									/>
@@ -256,7 +322,8 @@ const SVO = props => {
 										flightNumber={flight.flightNumber}
 										time={moment(flight.arrivalTime).format('h:mm')}
 										date={moment(flight.arrivalTime).format('MMM Do')}
-										country={country}
+										countryFrom={countryFrom}
+										countryTo={countryTo}
 										terminal={flight.arrivalTerminal ? flight.arrivalTerminal : '1'}
 										key={flight.flightNumber}
 									/>
