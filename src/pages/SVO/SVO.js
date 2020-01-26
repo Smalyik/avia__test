@@ -19,8 +19,11 @@ const SVO = props => {
 	const [isTimeSortToUp, setIsTimeSortToUp] = useState(true)
 
 	const getDepartureFlights = async () => {
+		const flightType = departure ? 'departing' : 'arriving'
 		axios('http://localhost:3001/flights', {
 			params: {
+				flightType: flightType,
+				airport: 'SVO',
 				year: 2020,
 				month: 1,
 				day: 24,
@@ -184,13 +187,36 @@ const SVO = props => {
 		);
 	};
 
+	const changeFlightType = flightType => {
+		switch (flightType) {
+			case 'departing':
+				setFlightsInfo(null)
+				setDeparture(true)
+				break;
+			case 'arriving':
+				setFlightsInfo(null)
+				setDeparture(false)
+				break;
+			default:
+				break;
+		}
+	}
+
 	useEffect(() => {
 		getDepartureFlights();
 	}, []);
 
+	useEffect(() => {
+		getDepartureFlights();
+	}, [departure])
+
 	return (
 		<div className={styles.main}>
 			<div className="row">
+				<div>
+					<button onClick={() => changeFlightType('departing')}>Вылет</button>
+					<button onClick={() => changeFlightType('arriving')}>Прилет</button>
+				</div>
 				{flightsInfo ? (
 					<>
 						<span>Сортировка по стране: </span>
@@ -214,6 +240,7 @@ const SVO = props => {
 							if (departure) {
 								return (
 									<FlightCard
+										flightType={departure}
 										flightNumber={flight.flightNumber}
 										time={moment(flight.departureTime).format('h:mm')}
 										date={moment(flight.departureTime).format('MMM Do')}
@@ -225,6 +252,7 @@ const SVO = props => {
 							} else {
 								return (
 									<FlightCard
+										flightType={departure}
 										flightNumber={flight.flightNumber}
 										time={moment(flight.arrivalTime).format('h:mm')}
 										date={moment(flight.arrivalTime).format('MMM Do')}

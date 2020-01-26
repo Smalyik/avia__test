@@ -9,16 +9,16 @@ const FlightCard = props => {
 			<div className={styles.info}>
 				<div className={styles.infoBlock}>
 					<div className={styles.text}>
-						Дата {props.departure ? 'прилета' : 'вылета'}: {props.date}
+						Дата {props.flightType ? 'вылета' : 'прилета'}: {props.date}
 					</div>
 					<div className={styles.text}>
-						Время {props.departure ? 'прилета' : 'вылета'}: {props.time}
+						Время {props.flightType ? 'вылета' : 'прилета'}: {props.time}
 					</div>
 					<div className={styles.text}>
 						Куда: {props.country}
 					</div>
 					<div className={styles.text}>
-						Терминал {props.departure ? 'прилета' : 'вылета'}: {props.terminal}
+						Терминал {props.flightType ? 'вылета' : 'прилета'}: {props.terminal}
 					</div>
 				</div>
 			</div>
