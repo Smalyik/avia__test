@@ -4,6 +4,9 @@ import axios from 'axios';
 // import moment from 'moment'
 import * as moment from 'moment';
 import 'moment/locale/ru';
+import 'react-dates/initialize';
+import { DateRangePicker, SingleDatePicker, DayPickerRangeController } from 'react-dates';
+import 'react-dates/lib/css/_datepicker.css';
 import FlightCard from '../../components/FlightCard/FlightCard';
 import Controls from '../../components/Controls/Controls';
 import Select from 'react-select';
@@ -14,22 +17,25 @@ moment.locale('ru');
 
 const SVO = props => {
 	const [departure, setDeparture] = useState(true);
-	const [flightsInfo, setFlightsInfo] = useState();
-	const [prevFlightsInfo, setPrevFlightsInfo] = useState()
+	const [flightsInfo, setFlightsInfo] = useState({});
+	const [prevFlightsInfo, setPrevFlightsInfo] = useState();
 	const [isLetterSortToUp, setIsLetterSortToUp] = useState(true);
 	const [isTimeSortToUp, setIsTimeSortToUp] = useState(true);
 	const [searchInput, setSearchInput] = useState('');
+	const [startDateState, setStartDateState] = useState(moment().hours(0).minutes(0));
+	const [endDateState, setEndDateState] = useState(moment().hours(0).minutes(0).add(1, 'days'));
+	const [focusedInputDate, setFocusedInputDate] = useState(null);
 
-	const getDepartureFlights = async () => {
+	const getDepartureFlights = async (date, day) => {
 		const flightType = departure ? 'departing' : 'arriving';
 		axios('http://localhost:3001/flights', {
 			params: {
 				flightType: flightType,
 				airport: 'SVO',
-				year: 2020,
-				month: 1,
-				day: 24,
-				hour: 22,
+				year: date.years,
+				month: date.months + 1,
+				day: date.date,
+				hour: date.hours,
 			},
 		})
 			.then(response => response.data)
@@ -46,11 +52,23 @@ const SVO = props => {
 						});
 					}
 				});
-				setFlightsInfo({
-					flights: data.scheduledFlights,
-					countries: options,
-					airports: data.appendix.airports,
-				});
+				const flightsCopy = Object.assign(flightsInfo, {})
+				if (flightsCopy.flights) {
+					const newFlightsInfo = {
+						flights: [...data.scheduledFlights, ...flightsCopy.flights],
+						countries: [...options, ...flightsCopy.countries],
+						airports: [...data.appendix.airports, ...flightsCopy.airports],
+					}
+					setFlightsInfo(newFlightsInfo);
+				} else {
+					const newFlightsInfo = {
+						flights: data.scheduledFlights,
+						countries: options,
+						airports: data.appendix.airports,
+					}
+					setFlightsInfo(newFlightsInfo);
+				}
+				
 			});
 	};
 
@@ -219,11 +237,11 @@ const SVO = props => {
 	const changeFlightType = flightType => {
 		switch (flightType) {
 			case 'departing':
-				setFlightsInfo(null);
+				setFlightsInfo({});
 				setDeparture(true);
 				break;
 			case 'arriving':
-				setFlightsInfo(null);
+				setFlightsInfo({});
 				setDeparture(false);
 				break;
 			default:
@@ -232,7 +250,7 @@ const SVO = props => {
 	};
 
 	const searchFlightByNumber = event => {
-		const prevValue = searchInput
+		const prevValue = searchInput;
 		const nextValue = event.target.value;
 
 		const isRemoveOperation = nextValue < prevValue;
@@ -246,7 +264,7 @@ const SVO = props => {
 		}
 
 		if (isRemoveOperation) {
-			return setFlightsInfo(prevFlightsInfo)
+			return setFlightsInfo(prevFlightsInfo);
 		}
 
 		const copyFlights = [...flightsInfo.flights];
@@ -254,8 +272,8 @@ const SVO = props => {
 		const sortedFlightsList = copyFlights.filter(flight => {
 			return flight.flightNumber.includes(nextValue);
 		});
-		
-		setPrevFlightsInfo(flightsInfo)
+
+		setPrevFlightsInfo(flightsInfo);
 
 		setFlightsInfo(
 			Object.assign(copyInfo, {
@@ -264,8 +282,25 @@ const SVO = props => {
 		);
 	};
 
+	const onDatesChange = (startDate, endDate) => {
+		if (startDate && endDate) {
+			const startDateCopy = Object.assign(moment(startDate.toDate()), {})		
+			const daysDiff = endDate.diff(startDateCopy, 'days')
+			for (let i = 0; i < daysDiff; i++) {
+				startDateCopy.date += 1
+				for (let j = 0; j < 23; j++) {
+					startDateCopy.hours += 1
+					getDepartureFlights(startDateCopy);
+				}
+				startDateCopy.hours = 0
+			}
+		}
+		setStartDateState(startDate)
+		setEndDateState(endDate)
+	}
+
 	useEffect(() => {
-		getDepartureFlights();
+		getDepartureFlights(moment().toObject(), moment().date());
 	}, [departure]);
 
 	return (
@@ -277,8 +312,19 @@ const SVO = props => {
 				</div>
 				{flightsInfo ? (
 					<>
+						<DateRangePicker
+							startDate={startDateState}
+							startDateId={`${startDateState}`}
+							endDate={endDateState}
+							endDateId={`${endDateState}`}
+							onDatesChange={({ startDate, endDate }) => onDatesChange(startDate, endDate)}
+							focusedInput={null}
+							onFocusChange={focusedInput => setFocusedInputDate(focusedInput)}
+							numberOfMonths={12}
+						/>
 						<div>
 							<label>
+								<span>Поиск по номеру полета: </span>
 								<input onChange={searchFlightByNumber} type="tel" value={searchInput} />
 							</label>
 						</div>
@@ -295,41 +341,52 @@ const SVO = props => {
 							<button onClick={() => sortByGate('number')}>Сортировка терминалов по цифрам</button>
 						</div>
 						<button onClick={sortByTime}>Сортировка по времени {departure ? 'вылета' : 'прилета'}</button>
-						{flightsInfo.flights.map(flight => {
-							const countryTo = flightsInfo.airports.map(airport => {
-								return airport.fs === flight.arrivalAirportFsCode ? airport.countryName : null;
-							});
-							const countryFrom = flightsInfo.airports.map(airport => {
-								return airport.fs === flight.departureAirportFsCode ? airport.countryName : null;
-							});
-							if (departure) {
-								return (
-									<FlightCard
-										flightType={departure}
-										flightNumber={flight.flightNumber}
-										time={moment(flight.departureTime).format('h:mm')}
-										date={moment(flight.departureTime).format('MMM Do')}
-										countryFrom={countryFrom}
-										countryTo={countryTo}
-										terminal={flight.departureTerminal ? flight.departureTerminal : '1'}
-										key={flight.flightNumber}
-									/>
-								);
-							} else {
-								return (
-									<FlightCard
-										flightType={departure}
-										flightNumber={flight.flightNumber}
-										time={moment(flight.arrivalTime).format('h:mm')}
-										date={moment(flight.arrivalTime).format('MMM Do')}
-										countryFrom={countryFrom}
-										countryTo={countryTo}
-										terminal={flight.arrivalTerminal ? flight.arrivalTerminal : '1'}
-										key={flight.flightNumber}
-									/>
-								);
-							}
-						})}
+						{flightsInfo.flights && flightsInfo.flights.length > 0 ? (
+							flightsInfo.flights.map(flight => {
+								const countryTo = flightsInfo.airports.map(airport => {
+									return airport.fs === flight.arrivalAirportFsCode ? airport.countryName : null;
+								});
+								const countryFrom = flightsInfo.airports.map(airport => {
+									return airport.fs === flight.departureAirportFsCode ? airport.countryName : null;
+								});
+								
+								if (departure) {
+									const date = moment(flight.departureTime).toObject();
+									return (
+										<FlightCard
+											flightType={departure}
+											flightNumber={flight.flightNumber}
+											time={`${date.hours}:${
+												String(date.minutes).length === 1 ? '0' + date.minutes : date.minutes
+											}`}
+											date={moment(flight.departureTime).format('MMM Do')}
+											countryFrom={countryFrom}
+											countryTo={countryTo}
+											terminal={flight.departureTerminal ? flight.departureTerminal : '1'}
+											key={Math.random()}
+										/>
+									);
+								} else {
+									const date = moment(flight.arrivalTime).toObject();
+									return (
+										<FlightCard
+											flightType={departure}
+											flightNumber={flight.flightNumber}
+											time={`${date.hours}:${
+												String(date.minutes).length === 1 ? '0' + date.minutes : date.minutes
+											}`}
+											date={moment(flight.arrivalTime).format('MMM Do')}
+											countryFrom={countryFrom}
+											countryTo={countryTo}
+											terminal={flight.arrivalTerminal ? flight.arrivalTerminal : '1'}
+											key={flight.referenceCode}
+										/>
+									);
+								}
+							})
+						) : (
+							<div>Нет полетов на это время</div>
+						)}
 					</>
 				) : (
 					<div>Loading...</div>

@@ -13,8 +13,7 @@ function server() {
 	app.use('/flights', function(req, res) {
 		const fromOrTo = req.query.flightType === 'departing' ? 'from' : 'to'
 		const urlApi = `https://api.flightstats.com/flex/schedules/rest/v1/json/${fromOrTo}/${req.query.airport}/${req.query.flightType}/${req.query.year}/${req.query.month}/${req.query.day}/${req.query.hour}?appId=81a98f60&appKey=f3226e6677a30c331e413b552ddef8cf`;
-		var url = urlApi;
-		req.pipe(request(url)).pipe(res);
+		req.pipe(request(urlApi)).pipe(res);
 	});
 
 	app.listen(3001, 'localhost')
