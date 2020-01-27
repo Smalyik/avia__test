@@ -4,8 +4,7 @@ import axios from 'axios';
 // import moment from 'moment'
 import * as moment from 'moment';
 import 'moment/locale/ru';
-import 'react-dates/initialize';
-import { DateRangePicker, SingleDatePicker, DayPickerRangeController } from 'react-dates';
+import { KeyboardDatePicker, KeyboardTimePicker } from '@material-ui/pickers';
 import 'react-dates/lib/css/_datepicker.css';
 import FlightCard from '../../components/FlightCard/FlightCard';
 import Controls from '../../components/Controls/Controls';
@@ -13,20 +12,18 @@ import Select from 'react-select';
 
 import styles from './SVO.styl';
 
-moment.locale('ru');
-
 const SVO = props => {
 	const [departure, setDeparture] = useState(true);
 	const [flightsInfo, setFlightsInfo] = useState({});
-	const [prevFlightsInfo, setPrevFlightsInfo] = useState();
+	const [prevFlightsInfo, setPrevFlightsInfo] = useState([]);
 	const [isLetterSortToUp, setIsLetterSortToUp] = useState(true);
 	const [isTimeSortToUp, setIsTimeSortToUp] = useState(true);
 	const [searchInput, setSearchInput] = useState('');
-	const [startDateState, setStartDateState] = useState(moment().hours(0).minutes(0));
-	const [endDateState, setEndDateState] = useState(moment().hours(0).minutes(0).add(1, 'days'));
+	const [pickedHour, setPickedHour] = useState(moment());
+	const [pickedDate, setPickedDate] = useState(moment());
 	const [focusedInputDate, setFocusedInputDate] = useState(null);
 
-	const getDepartureFlights = async (date, day) => {
+	const getFlights = async date => {
 		const flightType = departure ? 'departing' : 'arriving';
 		axios('http://localhost:3001/flights', {
 			params: {
@@ -52,23 +49,22 @@ const SVO = props => {
 						});
 					}
 				});
-				const flightsCopy = Object.assign(flightsInfo, {})
+				const flightsCopy = Object.assign(flightsInfo, {});
 				if (flightsCopy.flights) {
 					const newFlightsInfo = {
 						flights: [...data.scheduledFlights, ...flightsCopy.flights],
 						countries: [...options, ...flightsCopy.countries],
 						airports: [...data.appendix.airports, ...flightsCopy.airports],
-					}
+					};
 					setFlightsInfo(newFlightsInfo);
 				} else {
 					const newFlightsInfo = {
 						flights: data.scheduledFlights,
 						countries: options,
 						airports: data.appendix.airports,
-					}
+					};
 					setFlightsInfo(newFlightsInfo);
 				}
-				
 			});
 	};
 
@@ -116,7 +112,7 @@ const SVO = props => {
 		);
 	};
 
-	const sortByGate = sortType => {
+	const sortByTerminal = sortType => {
 		const copyFlights = [...flightsInfo.flights];
 		const copyInfo = Object.create(flightsInfo);
 		let sortedFlightsList;
@@ -262,45 +258,53 @@ const SVO = props => {
 		} else if (event.target.value.match(onlyNumbersRegexp)) {
 			setSearchInput(nextValue);
 		}
-
+		const prevFlightsCopy = [...prevFlightsInfo];
+		const flightsInfoCopy = Object.assign(flightsInfo, {});
 		if (isRemoveOperation) {
-			return setFlightsInfo(prevFlightsInfo);
+			console.log(prevFlightsCopy[prevFlightsCopy.length - 1]);
+			setFlightsInfo(prevFlightsCopy[prevFlightsCopy.length - 1]);
+			prevFlightsCopy.pop();
+			setPrevFlightsInfo(prevFlightsCopy);
+		} else {
+			console.log(prevFlightsCopy[prevFlightsCopy.length - 1]);
+			const copyFlights = [...flightsInfo.flights];
+			const copyInfo = Object.create(flightsInfo);
+			const sortedFlightsList = copyFlights.filter(flight => {
+				return flight.flightNumber.includes(nextValue);
+			});
+
+			setPrevFlightsInfo([...prevFlightsInfo, flightsInfo]);
+			setFlightsInfo(
+				Object.assign(copyInfo, {
+					flights: sortedFlightsList,
+				})
+			);
 		}
-
-		const copyFlights = [...flightsInfo.flights];
-		const copyInfo = Object.create(flightsInfo);
-		const sortedFlightsList = copyFlights.filter(flight => {
-			return flight.flightNumber.includes(nextValue);
-		});
-
-		setPrevFlightsInfo(flightsInfo);
-
-		setFlightsInfo(
-			Object.assign(copyInfo, {
-				flights: sortedFlightsList,
-			})
-		);
 	};
 
-	const onDatesChange = (startDate, endDate) => {
-		if (startDate && endDate) {
-			const startDateCopy = Object.assign(moment(startDate.toDate()), {})		
-			const daysDiff = endDate.diff(startDateCopy, 'days')
-			for (let i = 0; i < daysDiff; i++) {
-				startDateCopy.date += 1
-				for (let j = 0; j < 23; j++) {
-					startDateCopy.hours += 1
-					getDepartureFlights(startDateCopy);
-				}
-				startDateCopy.hours = 0
-			}
+	const onDatesChange = date => {
+		if (date.isValid()) {
+			const dateCopy = date.toObject();
+			dateCopy.hours = pickedHour.hours();
+			getFlights(dateCopy);
+			setFlightsInfo({});
+			setPrevFlightsInfo([]);
 		}
-		setStartDateState(startDate)
-		setEndDateState(endDate)
-	}
+		setPickedDate(date);
+	};
 
+	const onHourChange = hour => {
+		if (hour.isValid()) {
+			const dateCopy = pickedDate.toObject();
+			dateCopy.hours = hour.hours()
+			getFlights(dateCopy);
+			setFlightsInfo({});
+			setPrevFlightsInfo([]);
+		}
+		setPickedHour(hour);
+	};
 	useEffect(() => {
-		getDepartureFlights(moment().toObject(), moment().date());
+		getFlights(moment().toObject());
 	}, [departure]);
 
 	return (
@@ -310,18 +314,27 @@ const SVO = props => {
 					<button onClick={() => changeFlightType('departing')}>Вылет</button>
 					<button onClick={() => changeFlightType('arriving')}>Прилет</button>
 				</div>
+				{console.log(pickedHour)}
 				{flightsInfo ? (
 					<>
-						<DateRangePicker
-							startDate={startDateState}
-							startDateId={`${startDateState}`}
-							endDate={endDateState}
-							endDateId={`${endDateState}`}
-							onDatesChange={({ startDate, endDate }) => onDatesChange(startDate, endDate)}
-							focusedInput={null}
-							onFocusChange={focusedInput => setFocusedInputDate(focusedInput)}
-							numberOfMonths={12}
+						<KeyboardDatePicker
+							clearable
+							value={pickedDate}
+							placeholder="10/10/2018"
+							onChange={date => onDatesChange(date)}
+							minDate={new Date()}
+							format="DD/MM/YYYY"
 						/>
+						<div>
+							<KeyboardTimePicker
+								ampm={false}
+								variant="inline"
+								label="With keyboard"
+								value={pickedHour}
+								format="HH"
+								onChange={hour => onHourChange(hour)}
+							/>
+						</div>
 						<div>
 							<label>
 								<span>Поиск по номеру полета: </span>
@@ -337,19 +350,21 @@ const SVO = props => {
 							<button onClick={() => sortByFlightNumber('decrease')}>Сортировка по убыванию номеру полета</button>
 						</>
 						<div>
-							<button onClick={() => sortByGate('letter')}>Сортировка терминалов по буквам</button>
-							<button onClick={() => sortByGate('number')}>Сортировка терминалов по цифрам</button>
+							<button onClick={() => sortByTerminal('letter')}>Сортировка терминалов по буквам</button>
+							<button onClick={() => sortByTerminal('number')}>Сортировка терминалов по цифрам</button>
 						</div>
 						<button onClick={sortByTime}>Сортировка по времени {departure ? 'вылета' : 'прилета'}</button>
-						{flightsInfo.flights && flightsInfo.flights.length > 0 ? (
+						{flightsInfo.flights ? (
 							flightsInfo.flights.map(flight => {
-								const countryTo = flightsInfo.airports.map(airport => {
-									return airport.fs === flight.arrivalAirportFsCode ? airport.countryName : null;
+								let countryTo, countryFrom;
+								flightsInfo.airports.map(airport => {
+									if (airport.fs === flight.arrivalAirportFsCode) {
+										countryTo = airport.countryName;
+									} else if (airport.fs === flight.departureAirportFsCode) {
+										countryFrom = airport.countryName;
+									}
 								});
-								const countryFrom = flightsInfo.airports.map(airport => {
-									return airport.fs === flight.departureAirportFsCode ? airport.countryName : null;
-								});
-								
+
 								if (departure) {
 									const date = moment(flight.departureTime).toObject();
 									return (
@@ -385,12 +400,10 @@ const SVO = props => {
 								}
 							})
 						) : (
-							<div>Нет полетов на это время</div>
+							<div>Loading...</div>
 						)}
 					</>
-				) : (
-					<div>Loading...</div>
-				)}
+				) : null}
 			</div>
 		</div>
 	);
