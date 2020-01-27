@@ -314,7 +314,6 @@ const SVO = props => {
 					<button onClick={() => changeFlightType('departing')}>Вылет</button>
 					<button onClick={() => changeFlightType('arriving')}>Прилет</button>
 				</div>
-				{console.log(pickedHour)}
 				{flightsInfo ? (
 					<>
 						<KeyboardDatePicker
