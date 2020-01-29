@@ -5,6 +5,7 @@ import MomentUtils from '@date-io/moment';
 import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import Root from './Root';
 import styles from './styles/common.styl';
+import FlightInfo from './components/FlightInfo/FlightInfo';
 const App = lazy(() => import('./pages/App/App'));
 const VKO = lazy(() => import('./pages/VKO/VKO'));
 const DME = lazy(() => import('./pages/DME/DME'));
@@ -38,9 +39,12 @@ ReactDOM.render(
 						<Route path="/SVO">
 							<SVO />
 						</Route>
+						<Route path="/flights/:info" name="flights">
+							<FlightInfo />
+						</Route>
 						<Route path="/">
 							<App />
-						</Route>
+						</Route>	
 					</Switch>
 					<footer className={styles.footer}>
 						<div className={styles.copyright}>Ilysha (c)</div>

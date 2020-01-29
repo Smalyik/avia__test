@@ -316,6 +316,7 @@ const SVO = props => {
 				</div>
 				{flightsInfo ? (
 					<>
+						<div>Выбор по дате</div>
 						<KeyboardDatePicker
 							clearable
 							value={pickedDate}
@@ -324,7 +325,7 @@ const SVO = props => {
 							minDate={new Date()}
 							format="DD/MM/YYYY"
 						/>
-						<div>
+						<div>Выбор по времени</div>
 							<KeyboardTimePicker
 								ampm={false}
 								variant="inline"
@@ -333,7 +334,6 @@ const SVO = props => {
 								format="HH"
 								onChange={hour => onHourChange(hour)}
 							/>
-						</div>
 						<div>
 							<label>
 								<span>Поиск по номеру полета: </span>
@@ -368,6 +368,7 @@ const SVO = props => {
 									const date = moment(flight.departureTime).toObject();
 									return (
 										<FlightCard
+											data={flight}
 											flightType={departure}
 											flightNumber={flight.flightNumber}
 											time={`${date.hours}:${
@@ -377,13 +378,14 @@ const SVO = props => {
 											countryFrom={countryFrom}
 											countryTo={countryTo}
 											terminal={flight.departureTerminal ? flight.departureTerminal : '1'}
-											key={Math.random()}
+											key={flight.referenceCode}
 										/>
 									);
 								} else {
 									const date = moment(flight.arrivalTime).toObject();
 									return (
 										<FlightCard
+											data={flight}
 											flightType={departure}
 											flightNumber={flight.flightNumber}
 											time={`${date.hours}:${
