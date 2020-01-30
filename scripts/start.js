@@ -20,7 +20,7 @@ const webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
 const clearConsole = require('react-dev-utils/clearConsole');
 const checkRequiredFiles = require('react-dev-utils/checkRequiredFiles');
-const server = require('../server.js');
+const server = require('../server/server.js');
 
 const {
   choosePort,
